@@ -157,7 +157,7 @@ This boilerplate includes a simple code generator to scaffold new modules (contr
 To use it, run:
 
 ```bash
-npx tsx ./generator/core.ts --name <ModuleName> --model-name <PrismaModelName>
+npm run generate:core -- --name <ModuleName> --model-name <PrismaModelName>
 ```
 
 -   Replace `<ModuleName>` with the desired name for your module (e.g., `Product`, `Order`). This will be used for folder and file naming.
@@ -166,7 +166,7 @@ npx tsx ./generator/core.ts --name <ModuleName> --model-name <PrismaModelName>
 Example:
 
 ```bash
-npx tsx ./generator/core.ts --name Product --model-name Product
+npm run generate:core -- --name Product --model-name Product
 ```
 
 This will create a `product` folder under `src/core` with `product.controller.ts`, `product.router.ts`, `product.service.ts`, and `product.validator.ts` files, pre-filled with basic CRUD operations and imports.
