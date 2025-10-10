@@ -1,0 +1,417 @@
+import { FormPageView } from '../../../src/core/formpage/formpage.validator.js';
+import { FormQuestionType } from '../../../src/core/formquestion/formquestion.validator.js';
+import { Prisma } from '../../generated/client/index.js';
+
+/**
+ * @type {(Prisma.FormPageCreateInput & {questions: Prisma.FormQuestionCreateInput[]})[]}
+ */
+const f1Questions = [
+  {
+    form: { connect: { id: 'b6c9d072-03fa-4812-82bd-48e6e6046581' } },
+    order: 1,
+    title: 'Data calon siswa',
+    view: FormPageView.LIST,
+    questions: [
+      {
+        order: 1,
+        name: 'sibling_order',
+        label: 'Urutan dalam keluarga',
+        type: FormQuestionType.NUMBER,
+        required: true,
+      },
+      {
+        order: 2,
+        name: 'siblings_count',
+        label: 'Total bersaudara',
+        type: FormQuestionType.NUMBER,
+        required: true,
+      },
+      {
+        order: 3,
+        name: 'region',
+        label: 'Domisili',
+        type: FormQuestionType.REGION,
+        required: true,
+      },
+      {
+        order: 4,
+        name: 'address',
+        label: 'Alamat',
+        type: FormQuestionType.TEXT,
+        required: true,
+      },
+      {
+        order: 5,
+        name: 'birth_certificate',
+        label: 'Akta kelahiran',
+        type: FormQuestionType.FILE,
+        rules: { mimetype: 'application/pdf' },
+        required: true,
+      },
+    ],
+  },
+  {
+    form: { connect: { id: 'b6c9d072-03fa-4812-82bd-48e6e6046581' } },
+    order: 2,
+    title: 'Sekolah asal calon siswa',
+    view: FormPageView.LIST,
+    questions: [
+      {
+        order: 1,
+        name: 'origin_pg',
+        label: 'PG',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 2,
+        name: 'origin_tk',
+        label: 'TK',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 3,
+        name: 'origin_sd',
+        label: 'SD (pindahan)',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 4,
+        name: 'origin_sd_class',
+        label: 'Kelas saat SD',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 5,
+        name: 'origin_sm',
+        label: 'SM',
+        hint: 'Pindahan',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 6,
+        name: 'origin_sm_class',
+        label: 'Kelas saat SM',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 7,
+        name: 'origin_school_address',
+        label: 'Alamat sekolah',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 8,
+        name: 'origin_remark',
+        label: 'Alasan masuk/pindah',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 9,
+        name: 'nisn',
+        label: 'NISN',
+        hint: 'Isi jika memiliki',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+    ],
+  },
+  {
+    form: { connect: { id: 'b6c9d072-03fa-4812-82bd-48e6e6046581' } },
+    order: 3,
+    title: 'Data saudara kandung',
+    view: FormPageView.TABLE,
+    questions: [
+      {
+        order: 1,
+        name: 'sibling_name',
+        label: 'Nama',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 2,
+        name: 'sibling_gender',
+        label: 'L/P',
+        type: FormQuestionType.RADIO,
+        required: false,
+        options: {
+          createMany: {
+            data: [
+              { label: 'Laki-laki', value: 'Laki-laki' },
+              { label: 'Perempuan', value: 'Perempuan' },
+            ],
+          },
+        },
+      },
+      {
+        order: 3,
+        name: 'sibling_birthdate',
+        label: 'Tanggal lahir',
+        type: FormQuestionType.DATE,
+        required: false,
+      },
+      {
+        order: 4,
+        name: 'sibling_school',
+        label: 'Nama sekolah',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 5,
+        name: 'sibling_class',
+        label: 'Kelas',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+    ],
+  },
+  {
+    form: { connect: { id: 'b6c9d072-03fa-4812-82bd-48e6e6046581' } },
+    order: 4,
+    title: 'Data orangtua/wali',
+    view: FormPageView.VARIANTS,
+    variants: 'Ayah|Ibu|Wali',
+    variantsRequired: 'true|true|false',
+    questions: [
+      {
+        order: 1,
+        name: 'parent_fullname',
+        label: 'Nama lengkap',
+        type: FormQuestionType.TEXT,
+        required: true,
+      },
+      {
+        order: 2,
+        name: 'parent_birthplace',
+        label: 'Tempat lahir',
+        type: FormQuestionType.TEXT,
+        required: true,
+      },
+      {
+        order: 3,
+        name: 'parent_birthdate',
+        label: 'Tanggal lahir',
+        type: FormQuestionType.DATE,
+        required: true,
+      },
+      {
+        order: 4,
+        name: 'parent_citizenship',
+        label: 'Kewarganegaraan',
+        type: FormQuestionType.TEXT,
+        required: true,
+      },
+      {
+        order: 5,
+        name: 'parent_religion',
+        label: 'Agama',
+        type: FormQuestionType.RADIO,
+        required: true,
+        options: {
+          createMany: {
+            data: [
+              { label: 'Islam', value: 'Islam' },
+              { label: 'Kristen', value: 'Kristen' },
+              { label: 'Katolik', value: 'Katolik' },
+              { label: 'Hindu', value: 'Hindu' },
+              { label: 'Buddha', value: 'Buddha' },
+              { label: 'Khonghucu', value: 'Khonghucu' },
+            ],
+          },
+        },
+      },
+      {
+        order: 6,
+        name: 'parent_marriage_count',
+        label: 'Perkawinan ke-',
+        type: FormQuestionType.NUMBER,
+        required: true,
+      },
+      {
+        order: 7,
+        name: 'parent_marriage_age',
+        label: 'Usia perkawinan',
+        type: FormQuestionType.NUMBER,
+        required: true,
+      },
+      {
+        order: 8,
+        name: 'parent_relationship',
+        label: 'Hubungan dengan calon siswa',
+        type: FormQuestionType.RADIO,
+        required: true,
+        options: {
+          createMany: {
+            data: [
+              { value: 'Ayah kandung', label: 'Ayah kandung' },
+              { value: 'Ayah sambung', label: 'Ayah sambung' },
+              { value: 'Ibu kandung', label: 'Ibu kandung' },
+              { value: 'Ibu sambung', label: 'Ibu sambung' },
+              { value: 'Kakek', label: 'Kakek' },
+              { value: 'Nenek', label: 'Nenek' },
+              { value: 'Paman', label: 'Paman' },
+              { value: 'Bibi', label: 'Bibi' },
+              { value: 'Lainnya', label: 'Lainnya', isFreeValue: true },
+            ],
+          },
+        },
+      },
+      {
+        order: 9,
+        name: 'parent_domicile',
+        label: 'Domisili',
+        hint: 'Isi jika tidak serumah dengan calon siswa',
+        type: FormQuestionType.REGION,
+        required: false,
+      },
+      {
+        order: 10,
+        name: 'parent_address',
+        label: 'Alamat',
+        hint: 'Isi jika tidak serumah dengan calon siswa',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 11,
+        name: 'parent_phone_number',
+        label: 'Nomor telepon/HP',
+        type: FormQuestionType.TEXT,
+        required: true,
+      },
+      {
+        order: 12,
+        name: 'parent_email',
+        label: 'Email',
+        type: FormQuestionType.TEXT,
+        required: true,
+      },
+      {
+        order: 13,
+        name: 'parent_com_priority',
+        label: 'Sarana komunikasi prioritas',
+        type: FormQuestionType.ORDER,
+        required: true,
+        options: {
+          createMany: {
+            data: [
+              { value: 'Telepon langsung', label: 'Telepon langsung' },
+              {
+                value: 'Pesan singkat Whatsapp',
+                label: 'Pesan singkat Whatsapp',
+              },
+              { value: 'Kirim email', label: 'Kirim email' },
+            ],
+          },
+        },
+      },
+      {
+        order: 14,
+        name: 'parent_edulevel',
+        label: 'Jenjang pendidikan terakhir',
+        type: FormQuestionType.SELECT,
+        required: true,
+        options: {
+          createMany: {
+            data: [
+              { value: 'TK', label: 'TK' },
+              { value: 'SD', label: 'SD' },
+              { value: 'SMP', label: 'SMP' },
+              { value: 'SMA/SMK/MA', label: 'SMA/SMK/MA' },
+              { value: 'D3', label: 'D3' },
+              { value: 'D4', label: 'D4' },
+              { value: 'S1', label: 'S1' },
+              { value: 'S2', label: 'S2' },
+              { value: 'S3', label: 'S3' },
+            ],
+          },
+        },
+      },
+      {
+        order: 15,
+        name: 'parent_edumajor',
+        label: 'Jurusan',
+        type: FormQuestionType.TEXT,
+        required: false,
+      },
+      {
+        order: 16,
+        name: 'parent_workfield',
+        label: 'Bidang pekerjaan',
+        type: FormQuestionType.CHECK,
+        required: true,
+        options: {
+          createMany: {
+            data: [
+              { value: 'Pendidikan', label: 'Pendidikan' },
+              { value: 'Pertambangan', label: 'Pertambangan' },
+              { value: 'Perbankan', label: 'Perbankan' },
+              { value: 'Properti', label: 'Properti' },
+              { value: 'Kesehatan', label: 'Kesehatan' },
+              { value: 'Kuliner', label: 'Kuliner' },
+              { value: 'Media', label: 'Media' },
+              { value: 'Lainnya', label: 'Lainnya', isFreeValue: true },
+            ],
+          },
+        },
+      },
+      {
+        order: 17,
+        name: 'parent_position',
+        label: 'Jabatan',
+        type: FormQuestionType.CHECK,
+        required: true,
+        options: {
+          createMany: {
+            data: [
+              { value: 'Direktur', label: 'Direktur' },
+              { value: 'General manajer', label: 'General manajer' },
+              { value: 'Manajer', label: 'Manajer' },
+              { value: 'Supervisor', label: 'Supervisor' },
+              { value: 'Staf', label: 'Staf' },
+              { value: 'Lainnya', label: 'Lainnya', isFreeValue: true },
+            ],
+          },
+        },
+      },
+      {
+        order: 18,
+        name: 'parent_salary',
+        label: 'Penghasilan/bulan',
+        type: FormQuestionType.RADIO,
+        required: true,
+        options: {
+          createMany: {
+            data: [
+              { value: 'Kurang dari 3 juta', label: 'Kurang dari 3 juta' },
+              { value: '3 - 5 juta', label: '3 - 5 juta' },
+              { value: '5 - 10 juta', label: '5 - 10 juta' },
+              { value: '10 - 15 juta', label: '10 - 15 juta' },
+              { value: '15 - 20 juta', label: '15 - 20 juta' },
+              { value: 'Di atas 20 juta', label: 'Di atas 20 juta' },
+            ],
+          },
+        },
+      },
+      {
+        order: 19,
+        name: 'parent_ktp',
+        label: 'KTP',
+        type: FormQuestionType.FILE,
+        rules: { mimetype: 'application/pdf' },
+        required: true,
+      },
+    ],
+  },
+];
+
+export default f1Questions;
