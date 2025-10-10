@@ -1,19 +1,34 @@
 import { Router } from 'express';
 import validatorMiddleware from '../../middlewares/validator.middleware';
-import UserController from './user.controller';
-import UserValidator from './user.validator';
+import userController from './user.controller';
+import userValidator from './user.validator';
 import { baseValidator } from '../../base/validator.base';
-import auth from '../../middlewares/auth.middleware';
 
 const r = Router();
-const controller = new UserController();
+const validator = userValidator;
+const controller = new userController();
 
-r.get('/show-all', validatorMiddleware({ query: baseValidator.browseQuery }), controller.findAll);
-r.get('/show-one/:id', controller.findById);
+r.get(
+  '/find-all',
+  validatorMiddleware({ query: baseValidator.findAllQuery }),
+  controller.findAll
+);
 
-r.post('/create', auth(['ADMIN']), validatorMiddleware({ body: UserValidator.create }), controller.create);
-r.put('/update/:id', auth(['ADMIN']), validatorMiddleware({ body: UserValidator.update }), controller.update);
-r.delete('/delete/:id', auth(['ADMIN']), controller.delete);
+r.get('/find-one/:id', controller.findById);
+
+r.post(
+  '/create',
+  validatorMiddleware({ body: validator.create }),
+  controller.create
+);
+
+r.patch(
+  '/update/:id',
+  validatorMiddleware({ body: validator.update }),
+  controller.update
+);
+
+r.delete('/delete/:id', controller.delete);
 
 const userRouter = r;
 export default userRouter;

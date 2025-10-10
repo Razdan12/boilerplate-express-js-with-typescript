@@ -1,12 +1,12 @@
 import Joi from 'joi';
 
-export const UserValidator = {
+export const userValidator = {
   create: Joi.object({
-    // define schema here
+    // no-data
   }),
   update: Joi.object({
-    // define schema here
+    // no-data
   }),
 };
 
-export default UserValidator;
+export default userValidator;

@@ -1,36 +1,39 @@
-import { Request, Response } from 'express';
 import BaseController from '../../base/controller.base';
-import { NotFound } from '../../exceptions/errors.exception';
-import UserService from './user.service';
+import userService from './user.service';
+import type { Request, Response } from 'express';
 
-class UserController extends BaseController {
-  private service = new UserService();
+class userController extends BaseController {
+  #service: userService;
+
+  constructor() {
+    super();
+    this.#service = new userService();
+  }
 
   findAll = this.wrapper(async (req: Request, res: Response) => {
-    const data = await this.service.findAll(req.query);
-    return this.ok(res, data, 'Berhasil mendapatkan banyak User');
+    const data = await this.#service.findAll((req as any).vquery);
+    return this.success(res, data, 'Banyak user berhasil didapatkan');
   });
 
   findById = this.wrapper(async (req: Request, res: Response) => {
-    const data = await this.service.findById(parseInt(req.params.id));
-    if (!data) throw new NotFound('User tidak ditemukan');
-    return this.ok(res, data, 'User ditemukan');
+    const data = await this.#service.findById(req.params.id);
+    return this.success(res, data, 'user berhasil didapatkan');
   });
 
   create = this.wrapper(async (req: Request, res: Response) => {
-    const data = await this.service.create(req.body);
-    return this.created(res, data, 'User berhasil dibuat');
+    const data = await this.#service.create((req as any).vbody);
+    return this.created(res, data, 'user berhasil dibuat');
   });
 
   update = this.wrapper(async (req: Request, res: Response) => {
-    const data = await this.service.update(parseInt(req.params.id), req.body);
-    return this.ok(res, data, 'User berhasil diperbarui');
+    const data = await this.#service.update(req.params.id, (req as any).vbody);
+    return this.success(res, data, 'user berhasil diperbarui');
   });
 
   delete = this.wrapper(async (req: Request, res: Response) => {
-    await this.service.delete(parseInt(req.params.id));
-    return this.noContent(res, 'User berhasil dihapus');
+    const data = await this.#service.delete(req.params.id);
+    return this.noContent(res, 'user berhasil dihapus');
   });
 }
 
-export default UserController;
+export default userController;

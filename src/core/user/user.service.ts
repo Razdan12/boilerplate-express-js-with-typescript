@@ -1,37 +1,41 @@
 import BaseService from '../../base/service.base';
-import prisma from '../../config/prisma.db';
+import prisma from '../../db/prisma';
 
-class UserService extends BaseService {
+class userService extends BaseService {
   constructor() {
     super(prisma);
   }
 
   findAll = async (query: any) => {
-    const q = this.transformBrowseQuery(query);
-    const data = await (this.db as any).user.findMany({ ...q });
+    const q = this.transformFindAllQuery(query);
+    const data = await this.db.user.findMany({ ...q });
 
-    if (query.paginate) {
-      const count = await (this.db as any).user.count({ where: q.where });
-      return this.paginate(data, count, q);
+    if (query?.paginate) {
+      const countData = await this.db.user.count({ where: (q as any).where });
+      return this.paginate(data, countData, q as any);
     }
+    return this.noPaginate(data);
+  };
+
+  findById = async (id: string) => {
+    const data = await this.db.user.findUniqueOrThrow({ where: { id } });
     return data;
   };
 
-  findById = async (id: number) => {
-    return (this.db as any).user.findUnique({ where: { id } });
-  };
-
   create = async (payload: any) => {
-    return (this.db as any).user.create({ data: payload });
+    const data = await this.db.user.create({ data: payload });
+    return data;
   };
 
-  update = async (id: number, payload: any) => {
-    return (this.db as any).user.update({ where: { id }, data: payload });
+  update = async (id: string, payload: any) => {
+    const data = await this.db.user.update({ where: { id }, data: payload });
+    return data;
   };
 
-  delete = async (id: number) => {
-    return (this.db as any).user.delete({ where: { id } });
+  delete = async (id: string) => {
+    const data = await this.db.user.delete({ where: { id } });
+    return data;
   };
 }
 
-export default UserService;
+export default userService;

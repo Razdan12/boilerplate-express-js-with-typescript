@@ -1,93 +1,79 @@
-import httpStatus from 'http-status-codes';
-import { ApiError } from '../exceptions/errors.exception';
-import { verifyToken } from '../helpers/jwt.helper';
-import { Unauthenticated } from '../exceptions/errors.exception';
-import prisma from '../config/prisma.db';
-import { Request, Response, NextFunction } from 'express';
-import { User } from '@prisma/client';
+// src/middlewares/auth.middleware.ts
+import jwt from 'jsonwebtoken';
+import type { Request, Response, NextFunction } from 'express';
+import { exception, Forbidden, Unauthenticated } from './exception.middleware.js';
+import prisma from '../db/prisma.js';
 
-interface AuthenticatedRequest extends Request {
-  user?: User;
+// ---- Types ----
+export type RoleCode = 'SDM' | 'ADM' | 'USR' | 'KSK' | 'PSI';
+
+export interface JwtAccessPayload extends jwt.JwtPayload {
+  uid: string;        // user id
+  // tambahkan field lain jika ada (e.g., exp, iat dari JwtPayload sudah ada)
 }
 
-export default function auth(roles?: string[]) {
-  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export interface AuthUser {
+  id: string;
+  email: string;
+  roleCode: RoleCode | null;
+}
+
+export interface AuthenticatedRequest extends Request {
+  user?: AuthUser;
+}
+
+// ---- Middleware factory ----
+const authMiddleware = (roleCodes: RoleCode[] | null = null) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const authHeader = req.headers.authorization;
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) throw new Unauthenticated();
 
-      if (!authHeader) {
-        return next(
-          new ApiError(
-            httpStatus.StatusCodes.UNAUTHORIZED,
-            'NO_AUTHORIZATION',
-            'Please Authenticate'
-          )
-        );
+      const secret = process.env.JWT_ACCESS_SECRET;
+      if (!secret) {
+        // Hindari verify dengan secret undefined
+        throw new Error('JWT_ACCESS_SECRET is not set');
       }
 
-      const parts = authHeader.split(' ');
-      const token = parts[1];
-      if (!token) {
-        return next(
-          new ApiError(
-            httpStatus.StatusCodes.UNAUTHORIZED,
-            'NO_AUTHORIZATION',
-            'Please Authenticate'
-          )
-        );
-      }
-
-      let decoded: any;
+      let data: JwtAccessPayload;
       try {
-        decoded = verifyToken(token);
-      } catch (e) {
-        return next(new Unauthenticated('Invalid or expired token'));
+        data = jwt.verify(token, secret) as JwtAccessPayload;
+      } catch {
+        throw new Unauthenticated();
       }
 
-      const user = await prisma.user.findFirst({
-        where: { id: decoded.userId },
+      // TODO: ganti ke cache/redis bila diperlukan
+      const user = await prisma.user.findUnique({
+        where: { id: data.uid },
+        select: {
+          id: true,
+          email: true,
+          isActive: true,
+          
+        },
       });
 
-      if (!user) {
-        return next(
-          new ApiError(
-            httpStatus.StatusCodes.UNAUTHORIZED,
-            'NO_DATA',
-            'Please Authenticate'
-          )
-        );
-      }
+      if (!user) throw new Unauthenticated();
+      if (!user.isActive) throw new Unauthenticated('Account suspended');
 
-      if (roles && roles.length > 0) {
-        const userRoleCodes = user.role;
-        const hasAccess = roles.some(allowedRole => userRoleCodes.includes(allowedRole));
-        if (!hasAccess) {
-          return next(
-            new ApiError(
-              httpStatus.StatusCodes.FORBIDDEN,
-              'NO_ACCESS',
-              'Unauthorized'
-            )
-          );
-        }
-      }
+      // const activeRole = user.roles.find((ur: any) => ur.isActive && ur.role.isActive);
+      // if (!activeRole) throw new Unauthenticated('No active role');
 
-      req.user = user;
+      // if (roleCodes && !roleCodes.includes(activeRole.role.code as RoleCode)) {
+      //   throw new Forbidden();
+      // }
+
+      // req.user = {
+      //   id: user.id,
+      //   email: user.email,
+      //   roleCode: (activeRole.role.code as RoleCode) ?? null,
+      // };
+
       next();
-    } catch (e: any) {
-      console.log('ini error auth middleware', e);
-
-      if (e.message === 'jwt expired') {
-        return next(
-          new ApiError(
-            httpStatus.StatusCodes.UNAUTHORIZED,
-            'NO_ACCESS',
-            'Expired Login Session'
-          )
-        );
-      }
-      console.error(e);
-      return next(e);
+    } catch (error) {
+      exception(error as Error, req, res);
     }
   };
-}
+};
+
+export { authMiddleware };

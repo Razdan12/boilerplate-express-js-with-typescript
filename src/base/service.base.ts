@@ -1,35 +1,37 @@
-import fs from 'fs';
-import { isBoolean, isDateAble, isInteger } from '../utils/type';
-import { PrismaClient } from '@prisma/client';
 import moment from 'moment';
 
-interface QueryParams {
+import { isBoolean, isDateAble, isInteger } from '../utils/type.js';
+import type { PrismaClient } from '@prisma/client';
+
+export type FindAllQueryEncoded = {
   where?: string;
-  starts?: string;
-  search?: string;
-  in_?: string;
-  not_?: string;
-  isnull?: string;
-  gte?: string;
-  lte?: string;
-  order?: string;
+  starts?: string;  
+  search?: string;   
+  in_?: string;      
+  not_?: string;     
+  isnull?: string;   
+  gte?: string;     
+  lte?: string;      
+  order?: string;   
+  paginate?: boolean | string; 
   limit?: number;
   page?: number;
-  paginate?: boolean;
-  [key: string]: any;
-}
+} & Record<string, unknown>;
 
-interface PaginatedResult<T> {
-  total_items: number;
+export type PrismaLikeArgs = {
+  where: Record<string, unknown>;
+  take?: number;
+  skip?: number;
+  orderBy?: Record<string, 'asc' | 'desc' | string>;
+};
+
+export type PaginatedResult<T> = {
+  items: T[];
   page: number;
   limit: number;
-  total_pages: number;
-  items: T[];
-}
-
-interface WhereCondition {
-  [key: string]: any;
-}
+  totalItems: number;
+  totalPages: number;
+};
 
 class BaseService {
   protected db: PrismaClient;
@@ -38,23 +40,21 @@ class BaseService {
     this.db = db;
   }
 
-  transformBrowseQuery(query: QueryParams = {}): {
-    where: { AND: WhereCondition[] };
-    take?: number;
-    skip?: number;
-    orderBy?: Record<string, 'asc' | 'desc'>;
-  } {
+  /**
+   * Mengubah query encoded (string) menjadi objek args mirip Prisma.
+   */
+  transformFindAllQuery = (query: FindAllQueryEncoded = {}): PrismaLikeArgs => {
     // where
-    const wheres: WhereCondition = {};
+    const wheres: Record<string, any> = {};
     if (query?.where) {
-      query.where.split('|').forEach((q) => {
-        const [col, val] = q.split(':');
+      query.where.split('+').forEach((q) => {
+        let [col, val] = q.split(':');
 
         if (val === '') return;
 
-        let parsedVal: any = val;
+        let parsedVal: string | number | boolean = val;
         if (isInteger(val)) {
-          parsedVal = parseInt(val);
+          parsedVal = parseInt(val, 10);
         } else if (isBoolean(val)) {
           parsedVal = val === 'true';
         }
@@ -74,20 +74,18 @@ class BaseService {
     }
 
     // starts
-    const starts: WhereCondition = {};
+    const starts: Record<string, any> = {};
     if (query?.starts) {
-      const ors: WhereCondition[] = [];
-      query.starts.split('|').forEach((q) => {
+      const ors: Record<string, any>[] = [];
+      query.starts.split('+').forEach((q) => {
         const [col, val] = q.split(':');
         const keys = col.split('.');
-        let current: WhereCondition = {};
+        const current: Record<string, any> = {};
         let temp = current;
 
         keys.forEach((key, index) => {
           if (index === keys.length - 1) {
-            temp[key] = {
-              startsWith: val,
-            };
+            temp[key] = { startsWith: val };
           } else {
             temp[key] = {};
             temp = temp[key];
@@ -97,23 +95,24 @@ class BaseService {
         ors.push(current);
       });
 
-      starts.OR = ors;
+      if (ors.length) starts.OR = ors;
     }
 
     // search
-    const search: WhereCondition = {};
+    const search: Record<string, any> = {};
     if (query?.search) {
-      const ors: WhereCondition[] = [];
-      query.search.split('|').forEach((q) => {
+      const ors: Record<string, any>[] = [];
+      query.search.split('+').forEach((q) => {
         const [col, val] = q.split(':');
         const keys = col.split('.');
-        let current: WhereCondition = {};
+        const current: Record<string, any> = {};
         let temp = current;
 
         keys.forEach((key, index) => {
           if (index === keys.length - 1) {
             temp[key] = {
               contains: val,
+              // mode: 'insensitive', // aktifkan bila butuh
             };
           } else {
             temp[key] = {};
@@ -124,38 +123,33 @@ class BaseService {
         ors.push(current);
       });
 
-      search.OR = ors;
+      if (ors.length) search.OR = ors;
     }
 
     // in
-    const in_: WhereCondition = {};
+    const in_: Record<string, any> = {};
     if (query?.in_) {
-      query.in_.split('|').forEach((q) => {
-        const [col, val] = q.split(':');
+      query.in_.split('+').forEach((q) => {
+        const [col, rawVal] = q.split(':');
         const keys = col.split('.');
         let current = in_;
 
         keys.forEach((key, index) => {
           if (index === keys.length - 1) {
-            const vals = val.split(',').map((v) => {
-              if (isInteger(v)) {
-                return parseInt(v);
-              } else if (isBoolean(v)) {
-                return v === 'true';
-              }
-              return v;
-            });
+            const vals = (rawVal ?? '')
+              .split(',')
+              .filter(Boolean)
+              .map((v) => {
+                if (isInteger(v)) return parseInt(v, 10);
+                if (isBoolean(v)) return v === 'true';
+                return v;
+              });
 
+            // Heuristic untuk relasi many (…s). Sesuaikan dengan skema jika perlu.
             if (keys[keys.length - 2]?.endsWith('s')) {
-              current.some = {
-                [key]: {
-                  in: vals,
-                },
-              };
+              current.some = { [key]: { in: vals } };
             } else {
-              current[key] = {
-                in: vals,
-              };
+              current[key] = { in: vals };
             }
           } else {
             current[key] = current[key] || {};
@@ -165,21 +159,19 @@ class BaseService {
       });
     }
 
-    // is not
-    const not_: WhereCondition = {};
+    // not
+    const not_: Record<string, any> = {};
     if (query?.not_) {
-      const ors: WhereCondition[] = [];
-      query.not_.split('|').forEach((q) => {
+      const ors: Record<string, any>[] = [];
+      query.not_.split('+').forEach((q) => {
         const [col, val] = q.split(':');
         const keys = col.split('.');
-        let current: WhereCondition = {};
+        const current: Record<string, any> = {};
         let temp = current;
 
         keys.forEach((key, index) => {
           if (index === keys.length - 1) {
-            temp[key] = {
-              not: val,
-            };
+            temp[key] = { not: val };
           } else {
             temp[key] = {};
             temp = temp[key];
@@ -189,21 +181,21 @@ class BaseService {
         ors.push(current);
       });
 
-      not_.OR = ors;
+      if (ors.length) not_.OR = ors;
     }
 
     // is null
-    const isnull: WhereCondition = {};
+    const isnull: Record<string, any> = {};
     if (query?.isnull) {
-      query.isnull.split('|').forEach((q) => {
-        isnull[q] = null;
+      query.isnull.split('+').forEach((col) => {
+        if (col) isnull[col] = null;
       });
     }
 
     // gte
-    const gte: WhereCondition = {};
+    const gte: Record<string, any> = {};
     if (query?.gte) {
-      query.gte.split('|').forEach((q) => {
+      query.gte.split('+').forEach((q) => {
         const [col, val] = q.split(':');
         gte[col] = {
           gte: isDateAble(val) ? moment(val).toDate() : val,
@@ -212,9 +204,9 @@ class BaseService {
     }
 
     // lte
-    const lte: WhereCondition = {};
+    const lte: Record<string, any> = {};
     if (query?.lte) {
-      query.lte.split('|').forEach((q) => {
+      query.lte.split('+').forEach((q) => {
         const [col, val] = q.split(':');
         lte[col] = {
           lte: isDateAble(val) ? moment(val).endOf('day').toDate() : val,
@@ -223,26 +215,28 @@ class BaseService {
     }
 
     // order by
-    const orderBy: Record<string, 'asc' | 'desc'> = {};
+    const orderBy: Record<string, 'asc' | 'desc' | string> = {};
     if (query?.order) {
-      query.order.split('|').forEach((q) => {
+      query.order.split('+').forEach((q) => {
         const [col, val] = q.split(':');
-        orderBy[col] = val as 'asc' | 'desc';
+        orderBy[col] = (val as 'asc' | 'desc') ?? 'asc';
       });
     }
 
     // pagination
-    const pagination: { take?: number; skip?: number } = {};
+    const pagination: Record<string, number> = {};
+    const usePaginate =
+      typeof query?.paginate === 'string'
+        ? query.paginate === 'true'
+        : Boolean(query?.paginate);
 
-    if (query?.limit && query.limit > 0) {
-      if (query.paginate) pagination.take = query.limit;
-    }
+    const limit = typeof query?.limit === 'number' ? query.limit : undefined;
+    const page =
+      typeof query?.page === 'number' && query.page > 0 ? query.page : 1;
 
-    if (query?.paginate) {
-      if (pagination.take && pagination.take > 0) {
-        const page = query.page && query.page > 0 ? query.page : 1;
-        pagination.skip = (page - 1) * (pagination.take || 0);
-      }
+    if (usePaginate && limit && limit > 0) {
+      pagination.take = limit;
+      pagination.skip = (page - 1) * limit;
     }
 
     return {
@@ -251,97 +245,65 @@ class BaseService {
       },
       take: pagination.take,
       skip: pagination.skip,
-      orderBy: Object.keys(orderBy).length > 0 ? orderBy : undefined,
+      orderBy,
     };
-  }
+  };
 
-  paginate<T>(data: T[], count: number, query: { take: number; skip: number }): PaginatedResult<T> {
-    const size = query.take <= 0 ? count : query.take;
-    const page = query.skip >= 0 ? Math.floor(query.skip / query.take) + 1 : 1;
+  /**
+   * Mengembalikan bentuk paginate standar.
+   */
+  paginate = <T>(
+    data: T[],
+    count: number,
+    query: { take?: number; skip?: number }
+  ): PaginatedResult<T> => {
+    const take = query.take ?? count;
+    const safeLimit = take > 0 ? take : count || 1; // hindari div/0
+
+    const page =
+      query.take && query.take > 0
+        ? Math.floor((query.skip ?? 0) / query.take) + 1
+        : 1;
 
     return {
-      total_items: count,
-      page,
-      limit: size,
-      total_pages: Math.ceil(count / size) || 1,
       items: data,
+      page,
+      limit: safeLimit,
+      totalItems: count,
+      totalPages: Math.ceil(count / safeLimit) || 1,
     };
-  }
+  };
 
-  exclude<T extends Record<string, any>>(data: T, selects: string[]): Partial<T> {
+  /**
+   * Non-paginate (hanya bungkus items).
+   */
+  noPaginate = <T>(data: T[]) => {
+    return { items: data };
+  };
+
+  /**
+   * Menyatukan host dari ENV dengan path relatif.
+   */
+  appendHost = (str: string): string => {
+    const host = (process.env.HOST ?? '').replace(/\/+$/, '');
+    const path = String(str ?? '').replace(/^\/+/, '');
+    return [host, path].filter(Boolean).join('/');
+  };
+
+  /**
+   * Transform sebagian field pada objek data.
+   */
+  transformFields = <T extends Record<string, any>>(
+    data: T,
+    transform: Partial<Record<keyof T, (val: T[keyof T]) => any>>
+  ): T => {
     return Object.fromEntries(
-      Object.entries(data).filter(([key]) => !selects.includes(key))
-    ) as Partial<T>;
-  }
-
-  select(selects: string[] = []): Record<string, any> | undefined {
-    if (!selects.length) return undefined;
-
-    const select: Record<string, any> = {};
-
-    selects.forEach((key) => {
-      const parts = key.split('.');
-      let current = select;
-
-      parts.forEach((part, index) => {
-        if (!current[part]) {
-          if (index === parts.length - 1) {
-            current[part] = true;
-          } else {
-            current[part] = { select: {} };
-          }
-        } else if (
-          index === parts.length - 1 &&
-          typeof current[part] === 'object' &&
-          !current[part].select
-        ) {
-          current[part].select = {};
-        }
-        current = current[part].select || current[part];
-      });
-    });
-
-    return select;
-  }
-
-  deleteUpload(path: string): void {
-    fs.unlink(path, (err) => {
-      if (err) {
-        console.error('ERR(file): ', err);
-      }
-    });
-  }
-
- getQueryValue(
-  query: Record<string, string> = {}, 
-  key: string, 
-  col: string
-): string | Date | number | boolean | undefined {
-  if (query[key]) {
-    const colvals = query[key].split('+');
-    const findMatchCol = colvals.find((cv) => cv.includes(col));
-    
-    if (findMatchCol) {
-      const parts = findMatchCol.split(':');
-      if (parts.length < 2) return undefined;
-      
-      let val = parts[1];
-
-      if (isDateAble(val)) {
-        return moment(val).toDate();
-      }
-      if (isInteger(val)) {
-        return parseInt(val);
-      }
-      if (isBoolean(val)) {
-        return val === 'true';
-      }
-      
-      return val;
-    }
-  }
-  return undefined;
-}
+      Object.entries(data).map(([key, val]) => {
+        const fn = transform?.[key as keyof T];
+        return [key, typeof fn === 'function' ? fn(val as any) : val];
+      })
+    ) as T;
+  };
 }
 
 export default BaseService;

@@ -1,82 +1,53 @@
-import multer from 'multer';
-import fs from 'fs';
-import { BadRequest } from '../exceptions/errors.exception';
-import { Request, Response, NextFunction } from 'express';
+import multer, { type Multer, type FileFilterCallback } from 'multer';
+import type { Request } from 'express';
 
-interface AuthenticatedRequest extends Request {
-  user?: { id: number };
-  files?: { [fieldname: string]: Express.Multer.File[] | undefined };
-}
+export type AllowedMimeType =
+  | 'application/pdf'
+  | 'application/msword'
+  | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  | 'image/jpeg'
+  | 'image/jpg'
+  | 'image/png'
+  | 'video/mp4'
+  | 'video/webm';
 
-interface UploadField {
-  name: string;
-  mimeTypes: (
-    'image/jpeg' |
-    'image/jpg' |
-    'image/png' |
-    'video/mp4' |
-    'video/webm' |
-    'application/pdf' |
-    'application/msword
-  )[];
-  maxCount?: number;
-  limitSize?: number;
+export interface UploadOptions {
+  mimeTypes?: AllowedMimeType[];
+  maxBytes: number; // wajib diisi (mis. 10 * 1024 * 1024 untuk 10MB)
 }
 
 /**
- * @param {'./uploads' | './public'} basePath
- * @param {string} subPaths
- * @returns {multer.StorageEngine}
+ * Factory Multer uploader berbasis memoryStorage.
  */
-const createStorage = (basePath: string, subPaths: string): multer.StorageEngine => {
-  return multer.diskStorage({
-    destination: function (req: AuthenticatedRequest, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) {
-      const fullPath = basePath + subPaths;
-      if (!fs.existsSync(fullPath)) {
-        fs.mkdirSync(fullPath, { recursive: true });
+export function upload({
+  mimeTypes = [
+    'application/msword',
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'video/mp4',
+    'video/webm',
+  ],
+  maxBytes,
+}: UploadOptions): Multer {
+  const storage = multer.memoryStorage();
+
+  return multer({
+    storage,
+    fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+      if (mimeTypes.includes(file.mimetype as AllowedMimeType)) {
+        cb(null, true);
+      } else {
+        const allowedExtensions = mimeTypes.map((mim) => mim.split('/')[1]).join(', ');
+        cb(
+          new Error(`Hanya file dengan ekstensi ${allowedExtensions} yang diperbolehkan.`)
+        );
       }
-      cb(null, fullPath);
     },
-    filename: function (req: AuthenticatedRequest, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) {
-      const fileName = `${Date.now()}-${file.fieldname}-${req.user?.id ?? 'null'}-${file.originalname}`;
-      cb(null, fileName);
-    },
+    limits: { fileSize: maxBytes },
   });
-};
+}
 
-/**
- * @param {'./uploads' | './public'} basePath
- * @param {string} subPaths
- * @param {UploadField[]} fields
- */
-const uploadMany =
-  (basePath: './uploads' | './public' = './public', subPaths: string, fields: UploadField[]) =>
-  (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    const upload = multer({
-      storage: createStorage(basePath, subPaths),
-    }).fields(fields.map(({ name, maxCount }) => ({ name, maxCount })));
-
-    upload(req, res, (err: any) => {
-      if (err) return next(new BadRequest(err.message ?? 'Gagal mengunggah'));
-
-      for (const field of fields) {
-        const files = req.files?.[field.name];
-        if (files) {
-          for (const file of files) {
-            // default 2mb
-            if (file.size > (field.limitSize ?? 2000000))
-              return next(
-                new BadRequest(`Ukuran ${field.name} melebihi batas.`)
-              );
-
-            if (!field.mimeTypes.includes(file.mimetype as any))
-              return next(new BadRequest(`Format ${field.name} tidak sesuai.`));
-          }
-        }
-      }
-
-      next();
-    });
-  };
-
-export { uploadMany };
+export default upload;

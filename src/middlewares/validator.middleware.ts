@@ -1,41 +1,40 @@
-import { Request, Response, NextFunction } from 'express';
-import Joi from 'joi';
-import { catchResponse } from '../exceptions/catch.execption';
+// src/middlewares/validator.middleware.ts
+import type { Request, Response, NextFunction } from 'express';
+import type Joi from 'joi';
+import { exception } from './exception.middleware.js';
 
-interface ValidationSchemas {
-  body?: Joi.ObjectSchema<any>;
-  query?: Joi.ObjectSchema<any>;
-}
+export type ValidatorSchemas<B = any, Q = any> = {
+  body?: Joi.ObjectSchema<B> | Joi.Schema;
+  query?: Joi.ObjectSchema<Q> | Joi.Schema;
+};
 
-/**
- * @param {ValidationSchemas} schemas
- */
-const validatorMiddleware = ({ body, query }: ValidationSchemas) => {
+export default function validatorMiddleware<B = any, Q = any>({
+  body,
+  query,
+}: ValidatorSchemas<B, Q>) {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const options = {
+    const options: Joi.AsyncValidationOptions = {
       abortEarly: false,
       allowUnknown: true,
       stripUnknown: true,
     };
 
     try {
-      // Validasi req.body
       const bodyValue = body
-        ? await body.validateAsync(req.body, options)
-        : req.body;
+        ? (await body.validateAsync((req.body ?? {}) as unknown, options)) as B
+        : (req.body as B);
 
-      // Validasi req.query
       const queryValue = query
-        ? await query.validateAsync(req.query, options)
-        : req.query;
+        ? (await query.validateAsync((req.query ?? {}) as unknown, options)) as Q
+        : (req.query as Q);
 
-      req.body = bodyValue;
-      req.query = queryValue;
+      // simpan hasil validasi pada request
+      (req as any).vbody = bodyValue;
+      (req as any).vquery = queryValue;
+
       next();
-    } catch (err: any) {
-      return catchResponse(err, req, res);
+    } catch (err) {
+      return exception(err, req, res);
     }
   };
-};
-
-export default validatorMiddleware;
+}
