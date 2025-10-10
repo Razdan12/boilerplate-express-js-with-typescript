@@ -94,60 +94,69 @@ Follow these steps to set up and run the project locally.
     The API server will run on the port specified in your `.env` file (default: `3000`).
 
 ## Project Structure
-
 ```
-Boilerplate/
-├───.git/
-├───node_modules/
-├───prisma/
-│   └───schema.prisma             # Prisma schema definition
-├───secrets/
-│   ├───private.pem               # Private key for JWT (generate your own)
-│   └───public.pem                # Public key for JWT (generate your own)
-├───src/
-│   ├───index.ts                  # Main application entry point
-│   ├───routes.ts                 # Centralized API route definitions
-│   ├───base/
-│   │   ├───controller.base.ts    # Base controller with common methods
-│   │   ├───service.base.ts       # Base service with common database operations
-│   │   └───validator.base.ts     # Base Joi validator configurations
-│   ├───config/
-│   │   ├───constant.ts           # Application-wide constants
-│   │   ├───multer.ts             # Multer configuration for file uploads
-│   │   └───prisma.db.ts          # Prisma client instance
-│   ├───core/
-│   │   └───user/                 # Example user module (empty by default)
-│   ├───exceptions/
-│   │   ├───catch.exception.ts    # Custom exception handling utilities
-│   │   ├───errors.exception.ts   # Custom error classes
-│   │   └───handler.exception.ts  # Global error handler middleware
-│   ├───helpers/
-│   │   ├───bcrypt.helper.ts      # Utility for password hashing
-│   │   ├───file.helper.ts        # File system utilities
-│   │   ├───image.helper.ts       # Image related utilities
-│   │   ├───jwt.helper.ts         # JWT token generation and verification
-│   │   ├───money.helper.ts       # Money formatting utilities
-│   │   ├───phoneNumber.ts        # Phone number formatting utilities
-│   │   ├───response.helper.ts    # Standardized API response helpers
-│   │   └───time.helper.ts        # Time and date utilities
-│   ├───middlewares/
-│   │   ├───auth.middleware.ts    # JWT authentication middleware
-│   │   ├───multer.middleware.ts  # Multer middleware for file uploads
-│   │   ├───upload.middleware.ts  # File upload handling logic
-│   │   ├───validator.middleware.ts # Joi validation middleware
-│   │   └───whatsappAuth.midleware.ts # WhatsApp authentication middleware (example)
-│   ├───socket/
-│   │   └───index.ts              # Socket.IO configuration and utilities
-│   └───utils/
-│       └───type.ts               # Common utility types
-├───uploads/                      # Directory for uploaded files
-├───.gitignore
-├───.prettierrc
-├───nodemon.json
-├───package-lock.json
-├───package.json
-├───tsconfig.json
-└───README.md                     # Project README file
+/Boilerplate/
+├───.env.example            # Example environment variables. Copy to .env and fill in your configuration.
+├───.gitignore              # Specifies files and directories to be ignored by Git.
+├───.prettierignore         # Specifies files and directories to be ignored by Prettier.
+├───.prettierrc             # Configuration file for Prettier.
+├───package-lock.json       # Records the exact version of each dependency.
+├───package.json            # Project manifest with metadata, scripts, and dependencies.
+├───README.md               # Project documentation.
+├───tsconfig.json           # TypeScript compiler configuration.
+├───generator/              # Directory for generator scripts.
+│   ├───core.ts             # Core script for the generator.
+│   └───seed.ts             # Script to seed the database with initial data.
+├───logs/                   # Directory for log files.
+│   └───app-2025-10-10.log  # Application log file for a specific date.
+├───prisma/                 # Directory for Prisma ORM configuration.
+│   ├───schema.prisma       # Prisma schema file defining data models and database connection.
+│   └───migrations/         # Directory for database migration files.
+│       ├───migration_lock.toml # Lock file to prevent concurrent migrations.
+│       └───20251010114426_testing/ # Individual migration directory.
+│           └───migration.sql # SQL file for the database migration.
+└───src/                    # Main directory for the application's source code.
+    ├───app.ts              # Main Express.js application file.
+    ├───index.ts            # Main entry point of the application.
+    ├───router.ts           # Defines the main application routes.
+    ├───assets/             # Directory for static assets like images, stylesheets, etc.
+    │   └───images/         # Directory for image files.
+    │       └───logo-sade.png # Logo image file.
+    ├───base/               # Directory for base classes.
+    │   ├───controller.base.ts # Base class for controllers.
+    │   ├───service.base.ts    # Base class for services.
+    │   └───validator.base.ts  # Base class for validators.
+    ├───core/               # Directory for the application's core business logic.
+    │   └───user/           # Directory for user-related functionality.
+    │       ├───user.controller.ts # Controller for handling user-related requests.
+    │       ├───user.router.ts     # Router for user-related routes.
+    │       ├───user.service.ts    # Service for user-related business logic.
+    │       └───user.validator.ts  # Validator for user-related request data.
+    ├───db/                 # Directory for database configuration and connection.
+    │   └───prisma.ts       # File to initialize and configure the Prisma client.
+    ├───lib/                # Directory for libraries and helper modules.
+    │   ├───file-manager/   # Module for file management.
+    │   │   └───index.ts    # Entry point for the file-manager module.
+    │   ├───logger/         # Module for logging.
+    │   │   └───index.ts    # Entry point for the logger module.
+    │   └───mailer/         # Module for sending emails.
+    │       └───index.ts    # Entry point for the mailer module.
+    ├───middlewares/        # Directory for Express.js middlewares.
+    │   ├───auth.middleware.ts      # Middleware for authentication.
+    │   ├───exception.middleware.ts # Middleware for handling exceptions.
+    │   ├───upload.middleware.ts    # Middleware for handling file uploads.
+    │   └───validator.middleware.ts # Middleware for request data validation.
+    ├───types/                # Directory for TypeScript type definitions.
+    │   └───express.d.ts    # Type definition file to extend Express.js objects.
+    ├───utils/                # Directory for utility functions.
+    │   ├───array.ts        # Utility functions for arrays.
+    │   ├───date.ts         # Utility functions for dates.
+    │   ├───number.ts       # Utility functions for numbers.
+    │   ├───string.ts       # Utility functions for strings.
+    │   ├───transform.ts    # Utility functions for data transformation.
+    │   └───type.ts         # Utility functions for data types.
+    └───views/                # Directory for view templates.
+        └───email-activation.html # HTML template for email activation.
 ```
 
 ## Code Generation
@@ -157,7 +166,7 @@ This boilerplate includes a simple code generator to scaffold new modules (contr
 To use it, run:
 
 ```bash
-npm run generate:core -- --name <ModuleName> --model-name <PrismaModelName>
+npm run gen:core -- --name <ModuleName> --model-name <PrismaModelName>
 ```
 
 -   Replace `<ModuleName>` with the desired name for your module (e.g., `Product`, `Order`). This will be used for folder and file naming.
@@ -166,7 +175,7 @@ npm run generate:core -- --name <ModuleName> --model-name <PrismaModelName>
 Example:
 
 ```bash
-npm run generate:core -- --name Product --model-name Product
+npm run gen:core -- --name Product --model-name Product
 ```
 
 This will create a `product` folder under `src/core` with `product.controller.ts`, `product.router.ts`, `product.service.ts`, and `product.validator.ts` files, pre-filled with basic CRUD operations and imports.
